@@ -74,8 +74,10 @@ class GerenciadorSenhas:
 
 O método `__new__` é chamado pelo Python toda vez que alguém tenta criar um
 objeto da classe. Aqui ele é sobrescrito para interceptar essa criação. Se
-`_instancia` ainda for `None`, o objeto é criado e armazenado na classe. Caso
-contrário, o bloco é ignorado e o objeto já existente é retornado diretamente.
+`_instancia` ainda for `None`, o objeto é criado, seus dados são inicializados
+e ele é armazenado na classe. Caso contrário, o bloco é ignorado e o objeto
+já existente é retornado diretamente. O resultado é que não importa quantas
+vezes a classe seja chamada, sempre se recebe o mesmo objeto.
 
 ```python
     def __new__(cls):
@@ -84,6 +86,41 @@ contrário, o bloco é ignorado e o objeto já existente é retornado diretament
             cls._instancia._senha_atual = 0
             cls._instancia._atendimentos = []
         return cls._instancia
+```
+
+`gerar_senha` incrementa o contador interno e retorna o novo número. Como
+existe apenas uma instância, o contador nunca reinicia entre chamadas de
+partes diferentes do sistema.
+
+```python
+    def gerar_senha(self):
+        self._senha_atual += 1
+        return self._senha_atual
+```
+
+`registrar_atendimento` recebe o número de uma senha e a adiciona à lista
+de atendidas, registrando que aquele cliente já foi chamado.
+
+```python
+    def registrar_atendimento(self, senha):
+        self._atendimentos.append(senha)
+        print(f"Senha {senha:03d} chamada para atendimento.")
+```
+
+`senhas_pendentes` calcula a diferença entre o total de senhas geradas e
+as que já foram atendidas, retornando quantos clientes ainda estão esperando.
+
+```python
+    def senhas_pendentes(self):
+        return self._senha_atual - len(self._atendimentos)
+```
+
+`status` exibe um resumo do estado atual do gerenciador, mostrando a última
+senha gerada, quantas foram atendidas e quantas ainda estão na fila.
+
+```python
+    def status(self):
+        print(f"Última senha: {self._senha_atual:03d} | Atendidas: {len(self._atendimentos)} | Pendentes: {self.senhas_pendentes()}")
 ```
 
 No código cliente, mesmo tentando criar dois objetos separados, os dois
@@ -99,6 +136,11 @@ print("São a mesma instância?", totem_entrada is painel_recepcao)
 s1 = totem_entrada.gerar_senha()
 s2 = totem_entrada.gerar_senha()
 s3 = painel_recepcao.gerar_senha()
+
+painel_recepcao.registrar_atendimento(s1)
+painel_recepcao.registrar_atendimento(s2)
+
+totem_entrada.status()
 ```
 
 ### Como executar
