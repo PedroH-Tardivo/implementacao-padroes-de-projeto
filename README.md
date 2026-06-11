@@ -31,6 +31,8 @@ comunicam e dividem responsabilidades entre si.
 
 Singleton (Criacional): `criacional-singleton/singleton.py`
 
+Decorator (Estrutural): `estrutural-decorator/decorator.py`
+
 ---
 
 ## Singleton — Criacional
@@ -160,4 +162,129 @@ Senha 001 chamada para atendimento.
 Senha 002 chamada para atendimento.
 
 Última senha: 003 | Atendidas: 2 | Pendentes: 1
+```
+
+---
+
+## Decorator — Estrutural
+
+> Referência: https://refactoring.guru/pt-br/design-patterns/decorator
+
+### Contexto
+
+Em sistemas onde objetos precisam ganhar comportamentos extras de forma
+flexível e combinável, usar herança para cada variação gera uma quantidade
+impraticável de subclasses. O Decorator resolve isso envolvendo o objeto
+original em camadas, onde cada camada acrescenta algo sem modificar o que
+está dentro.
+
+### Problema
+
+Em um jogo, um personagem começa com atributos base e pode equipar itens
+ao longo da partida. Se cada combinação de equipamentos fosse uma subclasse,
+seriam necessárias classes como GuerreiroComEspada, GuerreiroComArmadura,
+GuerreiroComEspadaEArmadura, GuerreiroComEspadaArmaduraEAmuleto e assim
+por diante. Com apenas 3 itens isso já se torna inviável, e cada novo item
+adicionado ao jogo multiplicaria o problema.
+
+### Solução
+
+Cada equipamento é um Decorator que envolve o personagem e acrescenta seus
+atributos aos que já existem. Os itens são empilhados em tempo de execução
+na ordem que o jogador equipar, sem precisar criar nenhuma subclasse nova
+para cada combinação possível.
+
+### Como o código funciona
+
+`Personagem` é a interface base que define o contrato: todo personagem deve
+ter uma descrição, um valor de vida e um valor de ataque.
+
+```python
+class Personagem(ABC):
+    @abstractmethod
+    def descricao(self) -> str:
+        pass
+
+    @abstractmethod
+    def vida(self) -> int:
+        pass
+
+    @abstractmethod
+    def ataque(self) -> int:
+        pass
+```
+
+`Guerreiro` é o personagem base concreto, sem nenhum equipamento.
+
+```python
+class Guerreiro(Personagem):
+    def descricao(self) -> str:
+        return "Guerreiro"
+
+    def vida(self) -> int:
+        return 100
+
+    def ataque(self) -> int:
+        return 10
+```
+
+`DecoradorEquipamento` é a classe base de todos os decorators. Ela recebe
+qualquer objeto do tipo `Personagem`, guarda a referência e repassa todas
+as chamadas para ele. Sozinha não adiciona nada, mas serve de estrutura
+para os equipamentos concretos.
+
+```python
+class DecoradorEquipamento(Personagem):
+    def __init__(self, personagem: Personagem):
+        self._personagem = personagem
+
+    def descricao(self) -> str:
+        return self._personagem.descricao()
+
+    def vida(self) -> int:
+        return self._personagem.vida()
+
+    def ataque(self) -> int:
+        return self._personagem.ataque()
+```
+
+Cada equipamento concreto sobrescreve apenas os atributos que modifica,
+chamando o objeto interno e somando sua contribuição.
+
+```python
+class Espada(DecoradorEquipamento):
+    def descricao(self) -> str:
+        return self._personagem.descricao() + " com espada"
+
+    def ataque(self) -> int:
+        return self._personagem.ataque() + 25
+```
+
+No código cliente, os equipamentos são empilhados um sobre o outro. Cada
+chamada percorre todas as camadas de fora para dentro, acumulando os atributos.
+
+```python
+personagem = Guerreiro()
+personagem = Espada(personagem)
+personagem = Armadura(personagem)
+personagem = Amuleto(personagem)
+```
+
+### Como executar
+
+```bash
+python3 estrutural-decorator/decorator.py
+```
+
+### Saída esperada
+
+```
+Guerreiro
+  Vida: 100 | Ataque: 10
+Guerreiro com espada
+  Vida: 100 | Ataque: 35
+Guerreiro com armadura
+  Vida: 150 | Ataque: 35
+Guerreiro com amuleto
+  Vida: 180 | Ataque: 45
 ```
