@@ -6,6 +6,8 @@ Todas implementações foram feitas em Python 3.
 
 Referência: https://refactoring.guru/pt-br/design-patterns, de autoria de Alexander Shvets. As implementações e exemplos contextualizados são originais.
 
+O Claude Sonnet 4.6 foi utilizado como apoio na criação dos contextos e exemplos práticos de cada padrão. Todo o código e a documentação foram escritos manualmente.
+
 ---
 
 ## O que são padrões de projeto?
@@ -32,6 +34,8 @@ comunicam e dividem responsabilidades entre si.
 Singleton (Criacional): `criacional-singleton/singleton.py`
 
 Decorator (Estrutural): `estrutural-decorator/decorator.py`
+
+Strategy (Comportamental): `comportamental-strategy/strategy.py`
 
 ---
 
@@ -287,4 +291,128 @@ Guerreiro com armadura
   Vida: 150 | Ataque: 35
 Guerreiro com amuleto
   Vida: 180 | Ataque: 45
+```
+
+---
+
+## Strategy — Comportamental
+
+> Referência: https://refactoring.guru/pt-br/design-patterns/strategy
+
+### Contexto
+
+Em sistemas onde um mesmo processo pode ser executado de formas diferentes
+dependendo da situação, embutir todas as variações com condicionais no mesmo
+método torna o código difícil de manter e de estender. O Strategy resolve
+isso separando cada variação em sua própria classe e permitindo que o
+algoritmo seja trocado em tempo de execução.
+
+### Problema
+
+Uma lista de produtos precisa ser ordenada de formas diferentes: por preço,
+por nome ou por avaliação. Sem o Strategy, a solução mais comum seria um
+bloco de condicionais dentro do método de ordenação:
+
+```python
+if criterio == "preco":
+    ...
+elif criterio == "nome":
+    ...
+elif criterio == "avaliacao":
+    ...
+```
+
+A cada novo critério de ordenação esse bloco cresce, misturando lógicas
+diferentes no mesmo lugar. Qualquer alteração em um critério arrisca afetar
+os outros, e adicionar um novo exige mexer em código já existente.
+
+### Solução
+
+Cada critério de ordenação vira uma estratégia independente. A lista de
+produtos não sabe como ordenar, ela apenas delega para a estratégia atual.
+Trocar o critério é tão simples quanto trocar o objeto de estratégia, sem
+alterar nada no restante do código.
+
+### Como o código funciona
+
+`EstrategiaOrdenacao` é a interface que todas as estratégias devem seguir.
+Define apenas um método: `ordenar`, que recebe a lista e devolve ordenada.
+
+```python
+class EstrategiaOrdenacao(ABC):
+    @abstractmethod
+    def ordenar(self, produtos: list) -> list:
+        pass
+```
+
+Cada estratégia concreta implementa o algoritmo do seu critério.
+`OrdenarPorAvaliacao` usa `reverse=True` para trazer as maiores avaliações
+primeiro.
+
+```python
+class OrdenarPorPreco(EstrategiaOrdenacao):
+    def ordenar(self, produtos: list) -> list:
+        return sorted(produtos, key=lambda p: p["preco"])
+
+class OrdenarPorAvaliacao(EstrategiaOrdenacao):
+    def ordenar(self, produtos: list) -> list:
+        return sorted(produtos, key=lambda p: p["avaliacao"], reverse=True)
+```
+
+`ListaProdutos` guarda uma referência para a estratégia atual e a usa ao
+exibir. O método `alterar_estrategia` permite trocar o critério em qualquer
+momento sem recriar o objeto.
+
+```python
+class ListaProdutos:
+    def __init__(self, estrategia: EstrategiaOrdenacao):
+        self._estrategia = estrategia
+
+    def alterar_estrategia(self, estrategia: EstrategiaOrdenacao):
+        self._estrategia = estrategia
+
+    def exibir(self, produtos: list):
+        resultado = self._estrategia.ordenar(produtos)
+        for p in resultado:
+            print(f"{p['nome']} | R${p['preco']:.2f} | Avaliação: {p['avaliacao']}")
+```
+
+No código cliente, a estratégia pode ser trocada a qualquer momento. O mesmo
+objeto `lista` exibe os produtos em ordens completamente diferentes sem
+precisar ser recriado.
+
+```python
+lista = ListaProdutos(OrdenarPorPreco())
+lista.exibir(produtos)
+
+lista.alterar_estrategia(OrdenarPorNome())
+lista.exibir(produtos)
+```
+
+### Como executar
+
+```bash
+python3 comportamental-strategy/strategy.py
+```
+
+### Saída esperada
+
+```
+Por preço:
+Mouse | R$80.00 | Avaliação: 3.9
+Teclado | R$150.00 | Avaliação: 4.2
+Headset | R$250.00 | Avaliação: 4.5
+Monitor | R$900.00 | Avaliação: 4.8
+
+Por nome:
+Headset | R$250.00 | Avaliação: 4.5
+Monitor | R$900.00 | Avaliação: 4.8
+Mouse | R$80.00 | Avaliação: 3.9
+Teclado | R$150.00 | Avaliação: 4.2
+
+Por avaliação:
+Monitor | R$900.00 | Avaliação: 4.8
+Headset | R$250.00 | Avaliação: 4.5
+Teclado | R$150.00 | Avaliação: 4.2
+Mouse | R$80.00 | Avaliação: 3.9
 ```
